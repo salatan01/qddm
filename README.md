@@ -38,8 +38,9 @@ cycle, reshuffle after). Audio is hard-muted via
           services.displayManager.sddm.wayland.enable = true;
           services.qddm = {
             enable = true;
-            # git-annex library: read at runtime, nothing baked into the store.
-            videoAbsolutePath = "/home/user/qSets/qDDM";
+            # Single copy, zero duplication: your annex library stays where
+            # it is, bind-mounted read-only for the greeter. Home keeps 0700.
+            videoLibrary = "/home/user/qSets/qDDM";
             mode = "random";
             playback = 2;      # twice, then random next
             repeat = true;
@@ -55,14 +56,14 @@ cycle, reshuffle after). Audio is hard-muted via
 GStreamer codecs for the greeter come from QtMultimedia; if a video stays
 black, add `gst_all_1.gst-plugins-*` to the system packages (same as qylock).
 
-## Video sources: store-baked vs runtime path
+## Video sources: one folder, no copies
 
-* `videoDirectory` (path): real video files copied into the store at build
-  time. Hermetic, works everywhere. Fails for git-annex symlink libraries.
-* `videoAbsolutePath` (string): host folder read by the running greeter
-  (e.g. `/home/user/qSets/qDDM`). Required for annex libraries; the `sddm`
-  user needs `rX` on every parent dir. If set, `videoDirectory` is ignored
-  at runtime (store `videos/` stays as fallback).
+`videoLibrary` (e.g. `/home/user/qSets/qDDM`) is bind-mounted **read-only**
+to `/var/lib/qddm` (`videoMountPoint`) at boot, and the theme reads from
+there. One folder on disk, nothing in the store, nothing in `/etc`, home
+stays `0700` so `sddm` never enters it — and `ro` means the greeter
+physically cannot write back. `videoAbsolutePath` skips the bind mount and
+reads a folder directly (you then own the permissions yourself).
 
 ## Preview without logging out
 

@@ -1,7 +1,6 @@
 { stdenvNoCC
 , lib
-, videoDirectory ? null
-, videoAbsolutePath ? ""
+, videoPath ? ""
 , mode ? "random"
 , playback ? 0
 , repeat ? true
@@ -9,6 +8,10 @@
 , showTitle ? true
 }:
 
+# NOTE: videos are NEVER baked into the store. The single library folder
+# lives on the host (e.g. ~/qSets/qDDM, bind-mounted read-only to
+# /var/lib/qddm by the module) and the theme reads it at greeter runtime
+# via theme.conf videoPath. No duplication, no store bloat.
 stdenvNoCC.mkDerivation {
   pname = "qddm";
   version = "0.1.0";
@@ -31,24 +34,12 @@ stdenvNoCC.mkDerivation {
     sed -i "s/^repeat=.*/repeat=${if repeat then "true" else "false"}/" "$CONF"
     sed -i "s|^fixedFile=.*|fixedFile=${fixedFile}|" "$CONF"
     sed -i "s|^showTitle=.*|showTitle=${if showTitle then "true" else "false"}|" "$CONF"
-    sed -i "s|^videoPath=.*|videoPath=${videoAbsolutePath}|" "$CONF"
+    sed -i "s|^videoPath=.*|videoPath=${videoPath}|" "$CONF"
 
-    # videos: populated from the Nix option, never committed to the repo.
-    # SDDM greeter is store-immutable, so videos must be baked in here.
+    # videos/ ships empty: runtime path above is the only source.
     rm -rf $out/share/sddm/themes/qddm/videos
     mkdir -p $out/share/sddm/themes/qddm/videos
-  '' + lib.optionalString (videoDirectory != null) ''
-    for f in ${videoDirectory}/*.mp4 ${videoDirectory}/*.mkv ${videoDirectory}/*.webm; do
-      [ -e "$f" ] || continue
-      cp -L "$f" $out/share/sddm/themes/qddm/videos/
-    done
-    count=$(ls -1 $out/share/sddm/themes/qddm/videos | wc -l)
-    if [ "$count" -eq 0 ]; then
-      echo "qddm: WARNING: no videos found in ${videoDirectory}" >&2
-    else
-      echo "qddm: bundled $count video(s)" >&2
-    fi
-  '' + ''
+
     runHook postInstall
   '';
 

@@ -2,24 +2,46 @@
 
 let
   cfg = config.services.qddm;
+  # Single-copy rule: the library lives in exactly one host folder.
+  # videoLibrary (e.g. ~/qSets/qDDM) is bind-mounted read-only to
+  # videoMountPoint and the theme reads from there — nothing is ever
+  # copied to the store, /etc, or anywhere else.
+  useBind = cfg.videoLibrary != "";
+  effectivePath = if useBind then cfg.videoMountPoint else cfg.videoAbsolutePath;
   qddmPkg = pkgs.callPackage ./package.nix {
-    inherit (cfg) videoDirectory mode playback repeat fixedFile showTitle;
-    videoAbsolutePath = cfg.videoAbsolutePath;
+    inherit (cfg) mode playback repeat fixedFile showTitle;
+    videoPath = effectivePath;
   };
 in
 {
   options.services.qddm = {
     enable = lib.mkEnableOption "qddm SDDM video playlist theme";
 
-    videoDirectory = lib.mkOption {
-      type = lib.types.nullOr lib.types.path;
-      default = null;
+    videoLibrary = lib.mkOption {
+      type = lib.types.str;
+      default = "";
       example = "/home/user/qSets/qDDM";
       description = ''
-        Folder of *.mp4/*.mkv/*.webm baked into the theme's videos/.
-        SDDM runs as the sddm user from the Nix store, so videos must be
-        copied in at build time — the greeter cannot read ~/ at runtime.
-        Null builds a video-less theme (black background, HUD still works).
+        The ONE folder holding your videos (git-annex libraries welcome).
+        Bind-mounted read-only to videoMountPoint at boot; the greeter reads
+        from there. Your home keeps mode 0700 — sddm never enters it.
+        Empty disables the bind mount (use videoAbsolutePath instead).
+      '';
+    };
+
+    videoMountPoint = lib.mkOption {
+      type = lib.types.str;
+      default = "/var/lib/qddm";
+      description = "Where videoLibrary is bind-mounted (read-only) for the greeter.";
+    };
+
+    videoAbsolutePath = lib.mkOption {
+      type = lib.types.str;
+      default = "";
+      example = "/srv/wallpapers";
+      description = ''
+        Direct runtime folder, used only when videoLibrary is empty.
+        The sddm user needs read+execute on every parent directory.
       '';
     };
 
@@ -55,7 +77,7 @@ in
     fixedFile = lib.mkOption {
       type = lib.types.str;
       default = "";
-      description = "Bare file name inside videos/ for mode=fixed. Empty = first video found.";
+      description = "Bare file name inside the library for mode=fixed. Empty = first video found.";
     };
 
     showTitle = lib.mkOption {
@@ -63,30 +85,25 @@ in
       default = true;
       description = "Bottom-center now-playing pill with humanized file name.";
     };
-
-    videoAbsolutePath = lib.mkOption {
-      type = lib.types.str;
-      default = "";
-      example = "/home/user/qSets/qDDM";
-      description = ''
-        Absolute host folder read at greeter runtime INSTEAD of bundled videos/.
-        Use this for git-annex libraries (e.g. ~/qSets/qDDM): annex symlinks
-        cannot be copied into the Nix store, but the running greeter resolves
-        them fine on the host. The sddm user needs read+execute permission on
-        every parent directory. Empty = use store-baked videos/ from
-        videoDirectory.
-      '';
-    };
   };
 
-  config = lib.mkIf cfg.enable {
-    services.displayManager.sddm.theme = "qddm";
-    services.displayManager.sddm.extraPackages = [
-      qddmPkg
-      pkgs.qt6.qt5compat
-      pkgs.qt6.qtmultimedia
-      pkgs.qt6.qtsvg
-    ];
-    environment.systemPackages = [ qddmPkg ];
-  };
+  config = lib.mkIf cfg.enable (lib.mkMerge [
+    (lib.mkIf useBind {
+      fileSystems.${cfg.videoMountPoint} = {
+        device = cfg.videoLibrary;
+        fsType = "none";
+        options = [ "bind" "ro" ];
+      };
+    })
+    {
+      services.displayManager.sddm.theme = "qddm";
+      services.displayManager.sddm.extraPackages = [
+        qddmPkg
+        pkgs.qt6.qt5compat
+        pkgs.qt6.qtmultimedia
+        pkgs.qt6.qtsvg
+      ];
+      environment.systemPackages = [ qddmPkg ];
+    }
+  ]);
 }
