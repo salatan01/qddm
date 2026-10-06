@@ -13,6 +13,8 @@ pick_qml() {
 }
 
 if BIN=$(pick_qml); then
+    echo "preview.sh: using system '$BIN' ($($BIN --version 2>&1 | head -1))" >&2
+    echo "preview.sh: QML2_IMPORT_PATH=$QML2_IMPORT_PATH" >&2
     exec "$BIN" "$DIR/preview.qml"
 fi
 

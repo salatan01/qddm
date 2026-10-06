@@ -1,5 +1,6 @@
 import QtQuick
 import QtQuick.Window
+import Qt.labs.folderlistmodel
 
 // preview.qml — qddm live harness. Check the theme WITHOUT logging out:
 //   ./preview.sh
@@ -92,28 +93,97 @@ Window {
         }
     }
 
+    // Independent probe of the video dir: tells "no videos found" apart
+    // from "theme broken" without touching Main.qml internals.
+    FolderListModel {
+        id: dirProbe
+        folder: mockConfig.videoPath !== "" ? ("file://" + mockConfig.videoPath) : Qt.resolvedUrl("themes/qddm/videos")
+        nameFilters: ["*.mp4", "*.mkv", "*.webm"]
+        showDirs: false
+        onStatusChanged: {
+            if (status === FolderListModel.Ready)
+                console.log("preview: dirProbe found " + count + " video(s)")
+        }
+    }
+
     // ── Preview HUD (outside the theme) ───────────────────────────
-    Rectangle {
+    // Line 1: knobs. Line 2: diagnostics — theme status + video count.
+    // If the screen is otherwise blank, line 2 names the culprit.
+    Column {
         anchors.top: parent.top
         anchors.left: parent.left
         anchors.margins: 14
-        width: hudRow.implicitWidth + 24
-        height: 30
-        radius: 15
-        color: "#66000000"
-        border.color: "#44c9a063"
+        spacing: 8
         z: 9999
-        Row {
-            id: hudRow
+        Rectangle {
+            width: hudRow.implicitWidth + 24
+            height: 30
+            radius: 15
+            color: "#66000000"
+            border.color: "#44c9a063"
+            Row {
+                id: hudRow
+                anchors.centerIn: parent
+                spacing: 8
+                Text { text: "PREVIEW"; color: "#c9a063"; font.pixelSize: 11; font.bold: true }
+                Text {
+                    text: mockConfig.videoMode + " · x" + mockConfig.playback
+                        + (mockConfig.repeat === "true" ? " · repeat" : " · once")
+                        + (mockConfig.showTitle === "true" ? " · title" : "")
+                        + " · pw=qddm · F1/F2/F3/F4 · Esc quits"
+                    color: "#aaffffff"; font.pixelSize: 11
+                }
+            }
+        }
+        Rectangle {
+            width: diagRow.implicitWidth + 24
+            height: 30
+            radius: 15
+            color: "#66000000"
+            border.color: win.diagOk ? "#4455ff88" : "#44ff5555"
+            Row {
+                id: diagRow
+                anchors.centerIn: parent
+                spacing: 8
+                Text { text: "DIAG"; color: "#c9a063"; font.pixelSize: 11; font.bold: true }
+                Text {
+                    text: themeLoader.status === Loader.Error ? "THEME FAILED (see console)"
+                        : themeLoader.status !== Loader.Ready ? "theme loading…"
+                        : dirProbe.status !== FolderListModel.Ready ? "scanning videos…"
+                        : dirProbe.count + " video(s): " + mockConfig.videoPath
+                    color: win.diagOk ? "#aaffffff" : "#ffaaaa"; font.pixelSize: 11
+                }
+            }
+        }
+    }
+
+    readonly property bool diagOk: themeLoader.status === Loader.Ready
+        && dirProbe.status === FolderListModel.Ready && dirProbe.count > 0
+
+    // Full-screen fallback: if the theme itself fails to compile/load,
+    // say so on screen instead of leaving a mysterious black window.
+    Rectangle {
+        anchors.fill: parent
+        z: 9998
+        visible: themeLoader.status === Loader.Error
+        color: "#180000"
+        Column {
             anchors.centerIn: parent
-            spacing: 8
-            Text { text: "PREVIEW"; color: "#c9a063"; font.pixelSize: 11; font.bold: true }
+            spacing: 10
             Text {
-                text: mockConfig.videoMode + " · x" + mockConfig.playback
-                    + (mockConfig.repeat === "true" ? " · repeat" : " · once")
-                    + (mockConfig.showTitle === "true" ? " · title" : "")
-                    + " · pw=qddm · F1/F2/F3/F4 · Esc quits"
-                color: "#aaffffff"; font.pixelSize: 11
+                anchors.horizontalCenter: parent.horizontalCenter
+                text: "THEME FAILED TO LOAD"
+                color: "#ff6666"; font.pixelSize: 22; font.bold: true
+            }
+            Text {
+                anchors.horizontalCenter: parent.horizontalCenter
+                text: "open a terminal and read the console output"
+                color: "#ccffffff"; font.pixelSize: 13
+            }
+            Text {
+                anchors.horizontalCenter: parent.horizontalCenter
+                text: "usual cause: QtMultimedia / Qt5Compat QML modules missing"
+                color: "#88ffffff"; font.pixelSize: 12
             }
         }
     }
