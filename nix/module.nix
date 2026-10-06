@@ -2,11 +2,29 @@
 
 let
   cfg = config.services.qddm;
+  # Portable home handling: "~/qSets/qDDM" (or "~user/...") resolves against
+  # real home directories, so the same config works on machines with
+  # different usernames. Nix "~" is otherwise a literal character.
+  normalUsers = lib.filterAttrs (_: u: u.isNormalUser or false) config.users.users;
+  normalNames = builtins.attrNames normalUsers;
+  defaultName = if normalNames == [ ] then "" else builtins.head normalNames;
+  homeFor = name:
+    if name == "" then
+      (if defaultName == "" then throw "qddm: '~/' needs a normal user (none defined)" else normalUsers.${defaultName}.home)
+    else if normalUsers ? ${name} then normalUsers.${name}.home
+    else if config.users.users ? ${name} then config.users.users.${name}.home
+    else throw "qddm: unknown user '~${name}'";
+  expandHome = path:
+    if lib.hasPrefix "~/" path then
+      homeFor cfg.videoLibraryUser + lib.removePrefix "~" path
+    else let m = builtins.match "~([^/]+)(/.*)" path; in
+      if m == null then path
+      else homeFor (builtins.head m) + builtins.elemAt m 1;
   # Single-copy rule: the library lives in exactly one host folder.
-  # videoLibrary (e.g. ~/qSets/qDDM) is bind-mounted read-only to
-  # videoMountPoint and the theme reads from there — nothing is ever
-  # copied to the store, /etc, or anywhere else.
+  # videoLibrary is bind-mounted read-only to videoMountPoint and the
+  # theme reads from there — nothing is ever copied anywhere.
   useBind = cfg.videoLibrary != "";
+  resolvedLibrary = if useBind then expandHome cfg.videoLibrary else "";
   effectivePath = if useBind then cfg.videoMountPoint else cfg.videoAbsolutePath;
   qddmPkg = pkgs.callPackage ./package.nix {
     inherit (cfg) mode playback repeat fixedFile showTitle;
@@ -20,12 +38,25 @@ in
     videoLibrary = lib.mkOption {
       type = lib.types.str;
       default = "";
-      example = "/home/user/qSets/qDDM";
+      example = "~/qSets/qDDM";
       description = ''
         The ONE folder holding your videos (git-annex libraries welcome).
+        "~/..." resolves against videoLibraryUser's home (default: the
+        first normal user, so the same config ports across machines with
+        different usernames); "~other/..." picks that user explicitly.
         Bind-mounted read-only to videoMountPoint at boot; the greeter reads
         from there. Your home keeps mode 0700 — sddm never enters it.
         Empty disables the bind mount (use videoAbsolutePath instead).
+      '';
+    };
+
+    videoLibraryUser = lib.mkOption {
+      type = lib.types.str;
+      default = "";
+      example = "superkat01";
+      description = ''
+        Which user's home "~/" in videoLibrary means. Empty = first normal
+        user on the system. Only needed on multi-user machines.
       '';
     };
 
@@ -90,7 +121,7 @@ in
   config = lib.mkIf cfg.enable (lib.mkMerge [
     (lib.mkIf useBind {
       fileSystems.${cfg.videoMountPoint} = {
-        device = cfg.videoLibrary;
+        device = resolvedLibrary;
         fsType = "none";
         options = [ "bind" "ro" ];
       };

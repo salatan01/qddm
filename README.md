@@ -40,7 +40,8 @@ cycle, reshuffle after). Audio is hard-muted via
             enable = true;
             # Single copy, zero duplication: your annex library stays where
             # it is, bind-mounted read-only for the greeter. Home keeps 0700.
-            videoLibrary = "/home/user/qSets/qDDM";
+            # "~/" follows the login user, so this ports across machines.
+            videoLibrary = "~/qSets/qDDM";
             mode = "random";
             playback = 2;      # twice, then random next
             repeat = true;
