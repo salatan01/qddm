@@ -291,6 +291,7 @@ Rectangle {
         // Playlist init is driven by videoFolder.onStatusChanged; this
         // covers the already-Ready race.
         if (videoFolder.status === FolderListModel.Ready) playlist.init()
+        if (typeof keyboard !== "undefined") keyboard.numLock = true
     }
 
     Rectangle {
@@ -551,5 +552,4 @@ Rectangle {
     }
 
     Timer { interval: 300; running: true; onTriggered: passInput.forceActiveFocus() }
-    Component.onCompleted: keyboard.numLock = true
 }

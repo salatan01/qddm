@@ -188,29 +188,40 @@ Window {
         }
     }
 
-    // Function keys are ignored by TextInput, so they reach us even while
-    // typing a password. Letters would not — hence F-keys, not letters.
-    Keys.onPressed: (event) => {
-        if (event.key === Qt.Key_Escape) {
-            Qt.quit()
-            event.accepted = true
-        } else if (event.key === Qt.Key_F1) {
+    // Function keys are ignored by TextInput, and Shortcuts fire
+    // regardless of which item has focus — unlike Keys, which cannot
+    // attach to a Window at all.
+    Shortcut {
+        sequence: "Escape"
+        onActivated: Qt.quit()
+    }
+    Shortcut {
+        sequence: "F1"
+        onActivated: {
             mockConfig.videoMode = mockConfig.videoMode === "random" ? "sequence"
                 : mockConfig.videoMode === "sequence" ? "fixed" : "random"
             console.log("preview: mode -> " + mockConfig.videoMode)
-            event.accepted = true
-        } else if (event.key === Qt.Key_F2) {
+        }
+    }
+    Shortcut {
+        sequence: "F2"
+        onActivated: {
             mockConfig.playback = mockConfig.playback === "0" ? "1"
                 : mockConfig.playback === "1" ? "2" : "0"
             console.log("preview: playback -> " + mockConfig.playback)
-            event.accepted = true
-        } else if (event.key === Qt.Key_F3) {
+        }
+    }
+    Shortcut {
+        sequence: "F3"
+        onActivated: {
             mockConfig.showTitle = mockConfig.showTitle === "true" ? "false" : "true"
-            event.accepted = true
-        } else if (event.key === Qt.Key_F4) {
+        }
+    }
+    Shortcut {
+        sequence: "F4"
+        onActivated: {
             mockConfig.repeat = mockConfig.repeat === "true" ? "false" : "true"
             console.log("preview: repeat -> " + mockConfig.repeat)
-            event.accepted = true
         }
     }
 

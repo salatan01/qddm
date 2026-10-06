@@ -32,6 +32,10 @@
             grep -q "audioOutput" ${./.}/themes/qddm/Main.qml || (echo "muted audioOutput guard missing" && exit 1)
             grep -q "videoMode" ${./.}/themes/qddm/theme.conf || (echo "videoMode key missing" && exit 1)
             grep -q "videoPath" ${./.}/themes/qddm/theme.conf || (echo "videoPath key missing" && exit 1)
+            # QML allows only ONE Component.onCompleted per object: a second
+            # root-level handler is a compile error ("Property value set
+            # multiple times") that blanks the greeter. Guard it here.
+            [ $(grep -c "^    Component.onCompleted" ${./.}/themes/qddm/Main.qml) -le 1 ] || (echo "duplicate root Component.onCompleted" && exit 1)
             touch $out
           '';
           preview-present = pkgs.runCommand "qddm-preview-present" { } ''
