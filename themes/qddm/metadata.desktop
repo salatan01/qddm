@@ -1,0 +1,8 @@
+[SddmGreeterTheme]
+Name=qddm
+Description=qddm — R1999 style video playlist greeter (muted, SDDM-safe)
+Author=qddm
+Type=sddm-theme
+MainScript=Main.qml
+ConfigFile=theme.conf
+QtVersion=6
