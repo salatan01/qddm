@@ -105,6 +105,13 @@ Rectangle {
         onCountChanged: playlist.onLibraryChanged()
     }
 
+    // Live config switch (preview harness only; no-op under SDDM).
+    onVideoModeChanged: playlist.reset()
+    onCfgPlaybackChanged: playlist.reset()
+    onCfgRepeatChanged: playlist.reset()
+    onCfgFixedFileChanged: playlist.reset()
+    onCfgVideoPathChanged: playlist.reset()
+
     QtObject {
         id: playlist
         property string currentUrl: ""
@@ -167,6 +174,18 @@ Rectangle {
             if (bag.length === 0) return
             bagIndex = 0
             setCurrent(bag[0])
+        }
+        // Live config switch (preview harness; SDDM config is static so this
+        // is a no-op there). Clearing currentUrl first guarantees the change
+        // signal fires even when the re-pick lands on the same file.
+        function reset() {
+            player.stop()
+            bag = []
+            bagIndex = -1
+            bad = ({})
+            currentUrl = ""
+            currentFile = ""
+            init()
         }
         function onLibraryChanged() {
             // New files appended mid-greeter: keep playing current, queue

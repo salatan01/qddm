@@ -64,6 +64,28 @@ black, add `gst_all_1.gst-plugins-*` to the system packages (same as qylock).
   user needs `rX` on every parent dir. If set, `videoDirectory` is ignored
   at runtime (store `videos/` stays as fallback).
 
+## Preview without logging out
+
+```sh
+./preview.sh          # fullscreen window, Esc quits
+```
+
+Mocks the SDDM context so `themes/qddm/Main.qml` runs unmodified. Test
+password is `qddm` (anything else fails like a real greeter). Live keys:
+
+| Key | Action |
+|---|---|
+| `F1` | Cycle `random → sequence → fixed` |
+| `F2` | Cycle `playback 0 → 1 → 2` (forever / once / twice) |
+| `F3` | Toggle title pill |
+| `F4` | Toggle `repeat` |
+| `Esc` | Quit |
+
+Knobs live at the top of `preview.qml` (`videoPath` defaults to
+`~/qSets/qDDM`). Needs `qml` (Qt6) on `PATH`, else falls back to a
+`nix shell` with Qt6 + GStreamer. `nix develop` sets the same env up
+via its `shellHook`.
+
 ## Local test (non-Nix)
 
 ```sh
