@@ -12,6 +12,12 @@
 # lives on the host (e.g. ~/qSets/qDDM, bind-mounted read-only to
 # /var/lib/qddm by the module) and the theme reads it at greeter runtime
 # via theme.conf videoPath. No duplication, no store bloat.
+let
+  # Free-string options land in theme.conf via sed: escape the replacement
+  # so "&", backslash or the "|" delimiter in a path can't corrupt the file
+  # (sed would otherwise expand "&" to the matched text).
+  escSed = s: lib.replaceStrings [ "\\" "&" "|" ] [ "\\\\" "\\&" "\\|" ] s;
+in
 stdenvNoCC.mkDerivation {
   pname = "qddm";
   version = "0.1.0";
@@ -32,9 +38,9 @@ stdenvNoCC.mkDerivation {
     sed -i "s/^videoMode=.*/videoMode=${mode}/" "$CONF"
     sed -i "s/^playback=.*/playback=${toString playback}/" "$CONF"
     sed -i "s/^repeat=.*/repeat=${if repeat then "true" else "false"}/" "$CONF"
-    sed -i "s|^fixedFile=.*|fixedFile=${fixedFile}|" "$CONF"
+    sed -i "s|^fixedFile=.*|fixedFile=${escSed fixedFile}|" "$CONF"
     sed -i "s|^showTitle=.*|showTitle=${if showTitle then "true" else "false"}|" "$CONF"
-    sed -i "s|^videoPath=.*|videoPath=${videoPath}|" "$CONF"
+    sed -i "s|^videoPath=.*|videoPath=${escSed videoPath}|" "$CONF"
 
     # videos/ ships empty: runtime path above is the only source.
     rm -rf $out/share/sddm/themes/qddm/videos

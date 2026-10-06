@@ -123,7 +123,9 @@ in
       fileSystems.${cfg.videoMountPoint} = {
         device = resolvedLibrary;
         fsType = "none";
-        options = [ "bind" "ro" ];
+        # nofail: a missing/renamed library must degrade to a black
+        # background with a working login, never block boot.
+        options = [ "bind" "ro" "nofail" ];
       };
     })
     {

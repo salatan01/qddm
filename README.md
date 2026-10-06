@@ -83,10 +83,11 @@ password is `qddm` (anything else fails like a real greeter). Live keys:
 | `F4` | Toggle `repeat` |
 | `Esc` | Quit |
 
-Knobs live at the top of `preview.qml` (`videoPath` defaults to
-`~/qSets/qDDM`). Needs `qml` (Qt6) on `PATH`, else falls back to a
-`nix shell` with Qt6 + GStreamer. `nix develop` sets the same env up
-via its `shellHook`.
+Knobs live at the top of `preview.qml` (`videoPath` defaults to the absolute
+path `/home/superkat01/qSets/qDDM` — plain `qml` has no `~` expansion, so
+edit it if your library lives elsewhere). Needs `qml` (Qt6) on `PATH`, else
+falls back to a `nix shell` with Qt6 + GStreamer. `nix develop` sets the
+same env up via its `shellHook`.
 
 ## Local test (non-Nix)
 
@@ -98,5 +99,6 @@ ln -s ~/qSets/qDDM/aemeanth_so_cold.mp4 themes/qddm/videos/test.mp4
 ## Layout
 
 `themes/qddm/Main.qml` (R1999-I port) · `theme.conf` · `metadata.desktop` ·
-`font/Cinzel-Bold.ttf` · `videos/` (populated at build, never committed) ·
+`font/Cinzel-Bold.ttf` · `videos/` (always empty at runtime; the mount path
+in `theme.conf` is the only source — never committed) ·
 `nix/package.nix` · `nix/module.nix` (`services.qddm.*`).

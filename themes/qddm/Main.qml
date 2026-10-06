@@ -21,7 +21,6 @@ Rectangle {
     // Colors (R1999-I system)
     readonly property color fg:         "#fdfaf2"
     readonly property color gold:       "#c9a063"
-    readonly property color goldDim:    "#8c6d45"
     readonly property color orbitClr:   "#ffffff"
 
     // Quickshell (kept for future reuse; qddm ships SDDM-only)
@@ -318,6 +317,9 @@ Rectangle {
             id: titleText
             anchors.centerIn: parent
             text: playlist.humanTitle()
+            // PlainText: file names are untrusted input — AutoText would
+            // interpret "<b>" etc. as rich text.
+            textFormat: Text.PlainText
             font.family: serifFont.name; font.pixelSize: 12 * s; font.letterSpacing: 2 * s
             color: root.gold
             opacity: 0.9

@@ -45,6 +45,20 @@
             test -f ${./.}/preview-imports/SddmComponents/TextConstants.qml || (echo "missing TextConstants stub" && exit 1)
             touch $out
           '';
+
+          # Static QML gate: fails on syntax/type errors. The two disabled
+          # categories are benign by design — SDDM injects config/sddm/
+          # userModel/etc. as context properties at runtime (unqualified),
+          # and delegates declare uName/sName dynamically (missing-property).
+          lint = pkgs.runCommand "qddm-lint"
+            {
+              nativeBuildInputs = with pkgs.qt6; [ qtdeclarative qt5compat qtmultimedia ];
+            } ''
+            export QML2_IMPORT_PATH="${pkgs.qt6.qtdeclarative}/lib/qt-6/qml:${pkgs.qt6.qt5compat}/lib/qt-6/qml:${pkgs.qt6.qtmultimedia}/lib/qt-6/qml:${./.}/preview-imports"
+            qmllint --unqualified disable --missing-property disable -W 0 \
+              ${./.}/themes/qddm/Main.qml ${./.}/preview.qml
+            touch $out
+          '';
         });
 
       devShells = forAll (system:
